@@ -80,13 +80,13 @@ Try the enrolled person and another person. Press **Q** to quit. The displayed r
 
 ## Try family recognition instead
 
-To enroll a family member, run:
+To enroll a family member, or add more samples to an existing profile, run:
 
 ```sh
 python face_unlock/enroll_family.py
 ```
 
-Provide their name and relationship, then press **SPACE** to capture at least 5 samples (25 are recommended). Repeat for each person. To recognize enrolled family members, run:
+If profiles already exist, enter a profile ID to add samples to that person, or press **Enter** to create a new profile. For a new profile, provide the person's name and relationship. Press **SPACE** to capture at least 5 new samples (25 are recommended); vary head angle and distance slightly. The script appends samples to the selected profile instead of creating a duplicate. To recognize enrolled family members, run:
 
 ```sh
 python face_unlock/recognize_family.py

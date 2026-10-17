@@ -26,22 +26,63 @@ def save_profiles(profiles):
 def main():
     profiles = load_profiles()
 
-    name = input("Family member's name: ").strip()
-    relationship = input("Relationship to patient: ").strip()
-    greeting = input(
-        "Personal greeting (optional): "
-    ).strip()
+    profile_id = None
+    profile = None
+    if profiles:
+        print("Existing profiles:")
+        for existing_id, existing_profile in profiles.items():
+            print(
+                f"  {existing_id}: {existing_profile.get('name', 'Unnamed')} "
+                f"({existing_profile.get('relationship', 'relationship not set')})"
+            )
 
-    if not name or not relationship:
-        print("Name and relationship are required.")
-        return
+        selection = input(
+            "Enter a profile ID to add samples, or press Enter for a new profile: "
+        ).strip()
+        if selection:
+            if selection not in profiles:
+                print("That profile ID does not exist.")
+                return
+            profile_id = selection
+            profile = profiles[profile_id]
+        else:
+            name = input("Family member's name: ").strip()
+            relationship = input("Relationship to patient: ").strip()
+            greeting = input("Personal greeting (optional): ").strip()
 
-    profile_id = str(max(
-        [int(key) for key in profiles] or [0]
-    ) + 1)
+            if not name or not relationship:
+                print("Name and relationship are required.")
+                return
+
+            profile_id = str(max(int(key) for key in profiles) + 1)
+            profile = {
+                "name": name,
+                "relationship": relationship,
+                "greeting": greeting or f"This is {name}, your {relationship}."
+            }
+    else:
+        name = input("Family member's name: ").strip()
+        relationship = input("Relationship to patient: ").strip()
+        greeting = input("Personal greeting (optional): ").strip()
+
+        if not name or not relationship:
+            print("Name and relationship are required.")
+            return
+
+        profile_id = "1"
+        profile = {
+            "name": name,
+            "relationship": relationship,
+            "greeting": greeting or f"This is {name}, your {relationship}."
+        }
 
     profile_dir = DATA_DIR / profile_id
-    profile_dir.mkdir(parents=True, exist_ok=True)
+    existing_indices = [
+        int(path.stem)
+        for path in profile_dir.glob("*.png")
+        if path.stem.isdigit()
+    ]
+    first_sample_index = max(existing_indices, default=-1) + 1
 
     camera = cv2.VideoCapture(0)
 
@@ -52,65 +93,73 @@ def main():
     count = 0
     target = 25
 
-    print("\nKeep only this family member in view.")
+    profile_dir.mkdir(parents=True, exist_ok=True)
+    print(f"\nCapturing additional samples for profile {profile_id}.")
+    print("Keep only this family member in view.")
+    print("Vary your head angle and distance slightly between samples.")
     print("Press SPACE to save a face sample.")
     print("Press Q to finish enrollment.")
 
-    while count < target:
-        ok, frame = camera.read()
-        if not ok:
-            print("Could not read camera frame.")
-            break
+    try:
+        while count < target:
+            ok, frame = camera.read()
+            if not ok:
+                print("Could not read camera frame.")
+                break
 
-        box = detect_largest_face(frame)
+            box = detect_largest_face(frame)
 
-        if box is not None:
-            x, y, w, h = box
-            cv2.rectangle(
-                frame, (x, y), (x + w, y + h),
-                (0, 255, 0), 2
-            )
-            cv2.putText(
-                frame, f"Samples: {count}/{target}",
-                (20, 35), cv2.FONT_HERSHEY_SIMPLEX,
-                0.8, (0, 255, 0), 2
-            )
-        else:
-            cv2.putText(
-                frame, "No face detected",
-                (20, 35), cv2.FONT_HERSHEY_SIMPLEX,
-                0.8, (0, 0, 255), 2
-            )
+            if box is not None:
+                x, y, w, h = box
+                cv2.rectangle(
+                    frame, (x, y), (x + w, y + h),
+                    (0, 255, 0), 2
+                )
+                cv2.putText(
+                    frame, f"Samples: {count}/{target}",
+                    (20, 35), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.8, (0, 255, 0), 2
+                )
+            else:
+                cv2.putText(
+                    frame, "No face detected",
+                    (20, 35), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.8, (0, 0, 255), 2
+                )
 
-        cv2.imshow("Register Family Member", frame)
-        key = cv2.waitKey(1) & 0xFF
+            cv2.imshow("Register Family Member", frame)
+            key = cv2.waitKey(1) & 0xFF
 
-        if key == ord("q"):
-            break
+            if key == ord("q"):
+                break
 
-        if key == 32 and box is not None:
-            face = prepare_face(frame, box)
-            if face is not None:
-                filename = profile_dir / f"{count:03d}.png"
-                if cv2.imwrite(str(filename), face):
-                    count += 1
-                    print(f"Saved sample {count}/{target}")
-
-    camera.release()
-    cv2.destroyAllWindows()
+            if key == 32 and box is not None:
+                face = prepare_face(frame, box)
+                if face is not None:
+                    filename = profile_dir / (
+                        f"{first_sample_index + count:03d}.png"
+                    )
+                    if cv2.imwrite(str(filename), face):
+                        count += 1
+                        print(f"Saved sample {count}/{target}")
+    finally:
+        camera.release()
+        cv2.destroyAllWindows()
 
     if count < 5:
-        print("Too few samples. Please enrol again.")
+        print(
+            "Too few new samples were captured. "
+            "Capture at least 5 before registering."
+        )
         return
 
-    profiles[profile_id] = {
-        "name": name,
-        "relationship": relationship,
-        "greeting": greeting or f"This is {name}, your {relationship}."
-    }
+    profiles[profile_id] = profile
 
     save_profiles(profiles)
-    print(f"Registered {name} as profile {profile_id}.")
+    print(
+        f"Added {count} samples to {profile.get('name', 'profile')} "
+        f"(profile {profile_id})."
+    )
 
 
 if __name__ == "__main__":
