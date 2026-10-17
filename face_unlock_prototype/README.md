@@ -1,65 +1,123 @@
 # Face Unlock learning prototype
 
-A webcam-based learning demo using OpenCV Haar-cascade face detection and LBPH face matching.
+A webcam-based learning demo using OpenCV Haar-cascade face detection and LBPH face matching. It includes a single-person face unlock demo and a family face recognition demo.
 
-## Important limitations
-- This is an educational prototype, not phone-grade authentication.
-- LBPH is an older, lighting-sensitive method and is not a modern deep-learning face embedding model.
-- It has no liveness detection. A printed photo or screen replay may fool it.
-- The distance threshold is only a starting point and must be calibrated with testing.
-- Do not use it to protect private, financial, medical, or otherwise sensitive information.
-- Enrolled face data is stored locally under `face_unlock/data/`. Delete that folder to remove the profile.
+This is an educational prototype, not phone-grade authentication. LBPH is lighting-sensitive, there is no liveness detection, and a photo or screen replay may fool it. Do not use it to protect private, financial, medical, or otherwise sensitive information.
 
-## 1. Create a virtual environment
+## Requirements
 
-Windows PowerShell, from this folder:
+- Python 3
+- A webcam
+- Windows, macOS, or Linux
+
+The commands below use Python's built-in `venv` module. On Windows, install Python from [python.org](https://www.python.org/downloads/) or the Microsoft Store. During installation from python.org, enable **Add Python to PATH**.
+
+## Get the project
+
+Clone the repository, then enter the project directory:
+
+```sh
+git clone https://github.com/a212819-ukm/face_unlock.git
+cd face_unlock/face_unlock_prototype
+```
+
+If you downloaded a ZIP instead, extract it and open a terminal in the `face_unlock_prototype` folder—the folder containing `requirements.txt`.
+
+## Create an environment and install dependencies
+
+Create a virtual environment in the project folder:
+
+```sh
+python -m venv .venv
+```
+
+On Windows, activate it in PowerShell:
 
 ```powershell
-py -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-pip uninstall -y opencv-python
-pip install opencv-contrib-python
 ```
 
 If PowerShell blocks activation, use Command Prompt:
 
 ```bat
-py -m venv .venv
-.venv\Scripts\activate.bat
+.\.venv\Scripts\activate.bat
+```
+
+On macOS or Linux, activate it with:
+
+```sh
+source .venv/bin/activate
+```
+
+Then install the project dependencies:
+
+```sh
 python -m pip install --upgrade pip
-pip install -r requirements.txt
-pip uninstall -y opencv-python
-pip install opencv-contrib-python
+python -m pip install -r requirements.txt
 ```
 
-Use only one OpenCV wheel (`opencv-contrib-python`) in this environment because it includes `cv2.face`.
+The requirements install `opencv-contrib-python`, which includes `cv2.face` for LBPH recognition. Use this OpenCV package on its own; do not install `opencv-python` alongside it in the same environment.
 
-## 2. Enrol a face
+## Try the single-person unlock demo
 
-```powershell
-cd face_unlock
-python enroll.py
+Run these commands from the `face_unlock_prototype` folder, with the virtual environment activated.
+
+First, enroll a face:
+
+```sh
+python face_unlock/enroll.py
 ```
 
-Type a profile name. Capture 20-30 samples by pressing SPACE while looking front, slightly left and slightly right. Press Q to stop early. Aim for varied, ordinary lighting.
+Enter a short profile name, then press **SPACE** to capture at least 5 face samples (20–30 are recommended). Look forward and slightly left and right, with ordinary variation in lighting. Press **Q** to finish early.
 
-## 3. Test unlocking
+Next, test recognition:
 
-```powershell
-python unlock.py
+```sh
+python face_unlock/unlock.py
 ```
 
-Try the enrolled person, then a different person. Observe the displayed LBPH distance. Lower values generally mean a closer match, but the threshold `65.0` is not universal. To adjust it, edit `STARTER_THRESHOLD` in `unlock.py` only after collecting test results.
+Try the enrolled person and another person. Press **Q** to quit. The displayed result is only a demo; the starter threshold of `65.0` is not universal and should not be treated as a security guarantee.
+
+## Try family recognition instead
+
+To enroll a family member, run:
+
+```sh
+python face_unlock/enroll_family.py
+```
+
+Provide their name and relationship, then press **SPACE** to capture at least 5 samples (25 are recommended). Repeat for each person. To recognize enrolled family members, run:
+
+```sh
+python face_unlock/recognize_family.py
+```
+
+Press **SPACE** to identify faces in a snapshot and **Q** to quit.
+
+## Local profile data
+
+Enrollment creates files under `face_unlock/data/` on your computer:
+
+- `profile.json` and `face_model.yml` for the single-person demo.
+- `family_profiles/` with face sample images and profile details for family recognition.
+
+These are personal biometric data and are intentionally excluded from Git. Each person testing the project should enroll their own profiles locally; the repository does not include sample face data. Delete `face_unlock/data/` to remove locally stored profiles.
+
+## Troubleshooting
+
+- **The webcam will not open:** close other apps using it and check your operating system's camera permissions. The scripts use camera index `0`; if your webcam has a different index, update `cv2.VideoCapture(0)` in the relevant script.
+- **`cv2.face` is unavailable:** activate the project's virtual environment and reinstall from `requirements.txt`. Check that you have not also installed `opencv-python` in that environment.
+- **No face is detected:** improve lighting, face the camera, move closer, and make sure the whole face is visible.
 
 ## What the main functions do
+
 - `VideoCapture(0)`: opens the default webcam.
 - `detectMultiScale(...)`: finds candidate face regions.
-- `prepare_face(...)`: crops the face, converts to grayscale and resizes it.
+- `prepare_face(...)`: crops the face, converts it to grayscale, and resizes it.
 - `LBPHFaceRecognizer.train(...)`: builds a simple face recognizer from enrolled samples.
 - `recognizer.predict(...)`: returns a predicted label and distance.
 - `imshow(...)` and `waitKey(...)`: show the camera preview and read keyboard input.
 
 ## Next development stage
-Replace LBPH with a pretrained deep-learning model such as an appropriately licensed ArcFace/InsightFace model, add liveness checks, and implement the mobile UI. For a production mobile app, prefer platform authentication APIs (Android BiometricPrompt and Apple's LocalAuthentication) when the goal is to authenticate the device owner.
+
+Replace LBPH with an appropriately licensed pretrained model, add liveness checks, and implement a mobile UI. For a production mobile app, prefer platform authentication APIs (Android BiometricPrompt and Apple's LocalAuthentication) when the goal is to authenticate the device owner.
