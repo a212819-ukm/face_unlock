@@ -1,8 +1,32 @@
 # Face Unlock learning prototype
 
-A webcam-based learning demo using OpenCV Haar-cascade face detection and LBPH face matching. It includes a single-person face unlock demo and a family face recognition demo.
+This repository contains two separate prototypes:
+
+- A Python webcam demo using OpenCV Haar-cascade face detection and LBPH face matching.
+- An Android Flutter app with a family-recognition camera preview and visual states.
 
 This is an educational prototype, not phone-grade authentication. LBPH is lighting-sensitive, there is no liveness detection, and a photo or screen replay may fool it. Do not use it to protect private, financial, medical, or otherwise sensitive information.
+
+## Run the Flutter Android app
+
+Install the Flutter SDK and Android tooling (Android Studio with an emulator, or a physical Android phone with USB debugging enabled). From the repository root, change into the Flutter app folder:
+
+```sh
+cd face_unlock/face_unlock_prototype
+flutter pub get
+flutter run
+```
+
+The app opens to a home page; tap **OPEN FAMILY RECOGNITION** to open the front-camera preview. Android requests camera permission when needed. You can run the app on a connected phone or start an emulator first. Check available devices with `flutter devices`.
+
+The Flutter screen currently provides the camera preview and recognition-result UI only. It does **not** run face recognition or load the Python enrollment data; that requires a separate compatible on-device recognition model and migration or re-enrollment work.
+
+Run Flutter checks from the same folder:
+
+```sh
+flutter analyze
+flutter test
+```
 
 ## Requirements
 
